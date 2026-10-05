@@ -33,6 +33,7 @@ const database = process.env.DATABASE_URL
     ...(process.env.NODE_ENV === "production" ? { ssl: { rejectUnauthorized: false } } : {}),
   })
   : null;
+let databaseReady = !database && process.env.NODE_ENV !== "production";
 const sessions = new Set();
 const allowedImageTypes = new Map([
   ["image/jpeg", ".jpg"],
@@ -121,6 +122,14 @@ async function initializeDatabase() {
   }
 }
 
+function requireProjectStorage(req, res, next) {
+  if (databaseReady) return next();
+  const error = database
+    ? "Project storage is connecting. Please retry shortly."
+    : "DATABASE_URL is not configured for project storage.";
+  res.status(503).json({ error });
+}
+
 function requireAdmin(req, res, next) {
   const token = req.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token || !sessions.has(token)) {
@@ -149,7 +158,7 @@ const upload = multer({
 
 app.use(express.json({ limit: "32kb" }));
 
-app.get("/api/projects", async (req, res, next) => {
+app.get("/api/projects", requireProjectStorage, async (req, res, next) => {
   try {
     res.json({ projects: await readProjects() });
   } catch (error) {
@@ -173,7 +182,7 @@ app.post("/api/admin/login", (req, res) => {
   res.json({ token });
 });
 
-app.get("/api/admin/projects", requireAdmin, async (req, res, next) => {
+app.get("/api/admin/projects", requireAdmin, requireProjectStorage, async (req, res, next) => {
   try {
     res.json({ projects: await readProjects() });
   } catch (error) {
@@ -181,7 +190,7 @@ app.get("/api/admin/projects", requireAdmin, async (req, res, next) => {
   }
 });
 
-app.post("/api/admin/uploads", requireAdmin, upload.array("images", 8), async (req, res) => {
+app.post("/api/admin/uploads", requireAdmin, requireProjectStorage, upload.array("images", 8), async (req, res) => {
   const files = req.files ?? [];
   if (!files.length) return res.status(400).json({ error: "Choose at least one project image." });
   if (process.env.NODE_ENV === "production" && !s3Configured) {
@@ -209,7 +218,7 @@ app.post("/api/admin/uploads", requireAdmin, upload.array("images", 8), async (r
   }
 });
 
-app.post("/api/admin/projects", requireAdmin, async (req, res, next) => {
+app.post("/api/admin/projects", requireAdmin, requireProjectStorage, async (req, res, next) => {
   const { title, description, url, git = "", tags = [] } = req.body;
   const images = Array.isArray(req.body.images) ? req.body.images.filter((image) => typeof image === "string" && image.trim()) : [];
   const validImage = (image) => /^\/(uploads|media)\/[\w.-]+$/.test(image) || validUrl(image);
@@ -238,7 +247,7 @@ app.post("/api/admin/projects", requireAdmin, async (req, res, next) => {
   }
 });
 
-app.delete("/api/admin/projects/:id", requireAdmin, async (req, res, next) => {
+app.delete("/api/admin/projects/:id", requireAdmin, requireProjectStorage, async (req, res, next) => {
   try {
     const projects = await readProjects();
     const project = projects.find((entry) => entry.id === req.params.id);
@@ -258,6 +267,11 @@ app.delete("/api/admin/projects/:id", requireAdmin, async (req, res, next) => {
   }
 });
 
+app.get("/healthz", (req, res) => {
+  res.status(200).json({ status: "ok", projectStorage: databaseReady ? "ready" : "unavailable" });
+});
+
+
 app.use("/uploads", express.static(uploadDirectory));
 app.use(express.static(distributionDirectory));
 app.use((req, res, next) => {
@@ -273,10 +287,26 @@ app.use((error, req, res, next) => {
   res.status(status).json({ error: error.message || "The server could not complete that request." });
 });
 
-await initializeDatabase();
-
 app.listen(port, () => {
   console.log(`Portfolio server listening on http://localhost:${port}`);
+  if (!database) {
+    if (process.env.NODE_ENV === "production") console.error("DATABASE_URL is not configured; project APIs will return 503.");
+    return;
+  }
+
+  const initializeInBackground = () => {
+    initializeDatabase()
+      .then(() => {
+        databaseReady = true;
+        console.log("Project database is ready.");
+      })
+      .catch((error) => {
+        databaseReady = false;
+        console.error(`Database initialization failed (${error.code ?? error.name}); retrying in a few seconds.`);
+        setTimeout(initializeInBackground, 5000).unref();
+      });
+  };
+  initializeInBackground();
 });
 
 app.get("/media/:key", async (req, res, next) => {
