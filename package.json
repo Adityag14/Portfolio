@@ -1,0 +1,46 @@
+{
+  "name": "personal-portfolio",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"node server.mjs\" \"vite\"",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "generate:resume": "node scripts/generate-resume.mjs",
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1146.0",
+    "@radix-ui/react-toast": "^1.2.14",
+    "@tailwindcss/vite": "^4.1.10",
+    "aos": "^2.3.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "concurrently": "^9.2.0",
+    "dotenv": "^16.5.0",
+    "emailjs-com": "^3.2.0",
+    "express": "^5.1.0",
+    "lucide-react": "^0.522.0",
+    "multer": "^2.0.2",
+    "pg": "^8.23.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.2",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^4.1.10"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.25.0",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.4.1",
+    "eslint": "^9.25.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^16.0.0",
+    "pdfkit": "^0.20.2",
+    "vite": "^6.3.5"
+  }
+}

@@ -1,0 +1,33 @@
+[
+  {
+    "id": "923aa548-1326-4968-975e-1e8bc038c1a5",
+    "title": "Management ERP System",
+    "description": "build an complex centralized system to make smooth connection between different operations group",
+    "image": "/uploads/4b2a6764-b348-48ff-9948-ee7d298d195b.png",
+    "url": "https://erp-awd6.onrender.com/",
+    "git": "https://github.com/Adityag14/ERP",
+    "tags": [
+      "Node.js",
+      "HTML",
+      "CSS",
+      "JavaScript",
+      "Python",
+      "PostgreSQL"
+    ]
+  },
+  {
+    "id": "57fa1ec9-84af-45d2-abd9-1d5f0a503d19",
+    "title": "Temporary carousel smoke test",
+    "description": "Temporary visual test record.",
+    "image": "/uploads/931cd50a-6ebb-46e2-8253-6ebb69fa40d0.png",
+    "images": [
+      "/uploads/931cd50a-6ebb-46e2-8253-6ebb69fa40d0.png",
+      "/uploads/a698208e-1a93-43e4-96bc-78c70733e34c.png"
+    ],
+    "url": "https://example.com",
+    "git": "",
+    "tags": [
+      "test"
+    ]
+  }
+]
