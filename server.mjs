@@ -271,6 +271,20 @@ app.get("/healthz", (req, res) => {
   res.status(200).json({ status: "ok", projectStorage: databaseReady ? "ready" : "unavailable" });
 });
 
+app.get("/media/:key", async (req, res, next) => {
+  if (!s3Configured || !/^[\w-]+\.(jpg|png|webp|gif|avif)$/i.test(req.params.key)) {
+    return res.status(404).end();
+  }
+  try {
+    const image = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: req.params.key }));
+    res.set("Content-Type", image.ContentType || "application/octet-stream");
+    res.set("Cache-Control", "public, max-age=31536000, immutable");
+    await pipeline(image.Body, res);
+  } catch (error) {
+    if (error.name === "NoSuchKey" || error.$metadata?.httpStatusCode === 404) return res.status(404).end();
+    next(error);
+  }
+});
 
 app.use("/uploads", express.static(uploadDirectory));
 app.use(express.static(distributionDirectory));
@@ -307,19 +321,4 @@ app.listen(port, () => {
       });
   };
   initializeInBackground();
-});
-
-app.get("/media/:key", async (req, res, next) => {
-  if (!s3Configured || !/^[\w-]+\.(jpg|png|webp|gif|avif)$/i.test(req.params.key)) {
-    return res.status(404).end();
-  }
-  try {
-    const image = await s3.send(new GetObjectCommand({ Bucket: bucket, Key: req.params.key }));
-    res.set("Content-Type", image.ContentType || "application/octet-stream");
-    res.set("Cache-Control", "public, max-age=31536000, immutable");
-    await pipeline(image.Body, res);
-  } catch (error) {
-    if (error.name === "NoSuchKey" || error.$metadata?.httpStatusCode === 404) return res.status(404).end();
-    next(error);
-  }
 });
